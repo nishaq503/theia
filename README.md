@@ -1,2 +1,3 @@
-# theia
-A scalable deep learning based bleed through correction algorithm.
+# Theia
+
+Bleed-Through Correction in Fluorescent Microscopy Images
