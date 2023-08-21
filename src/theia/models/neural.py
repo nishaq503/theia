@@ -9,17 +9,17 @@ from tensorflow.python.keras import callbacks
 from tensorflow.python.keras import layers
 from tensorflow.python.keras import metrics
 
-from ..data import TileGenerator
+from ..data_gen import TileGenerator
 from .base import Theia
 
 __all__ = ["Neural"]
 
 
-class Neural(Theia, keras.Model):  # type: ignore
-    """Theia implemented our a Neural Network Architecture.
+class Neural(Theia, keras.Model):  # type: ignore[misc]
+    """Theia implemented using a CNN in Tensorflow.
 
     The architecture is a generalization of Siamese Networks, and performs the
-     equivalent of LASSO regression.
+    equivalent of LASSO regression.
     """
 
     def __init__(
@@ -32,18 +32,26 @@ class Neural(Theia, keras.Model):  # type: ignore
         beta: float,
         tile_size: int,
     ) -> None:
-        """Initialize and build the Network.
+        """Initialize a Theia model.
+
+        This model will estimate the bleedthrough and interaction between channels
+        in a multi-channel image. The bleedthrough terms are a measure of how much
+        of each channel is present in the other channels. The interaction terms are
+        a measure of how much is co-localized among a pair of channels.
+
+        The interaction term is defined as:
+
+            (target * neighbor^beta)^(1 / (1 + beta))
 
         Args:
-            num_channels: Number of channels in each input image.
-            channel_overlap: Maximum number of adjacent channels to consider for
-             bleed-through removal.
-            kernel_size: Side-length of square kernel (convolutional) to use for
-             estimating bleed-through.
-            alpha: Relative size of l1-penalty in the LASSO loss.
-            beta: Relative weighting of target channel in interaction terms.
-            tile_size: Side-length of square tiles to use as inputs to the
-             network.
+            num_channels: The number of channels in the input image.
+            channel_overlap: The number of channels to consider on either side of
+            the current channel.
+            kernel_size: The size of the convolutional kernels.
+            alpha: The L1 regularization parameter.
+            beta: The L2 regularization parameter.
+            tile_size: The side-length of the square tiles to use as inputs to the
+            network.
         """
         keras.Model.__init__(self)
         Theia.__init__(
@@ -129,7 +137,7 @@ class Neural(Theia, keras.Model):  # type: ignore
         """Side-length of square tiles to use as inputs to the network."""
         return self._tile_shape[0]
 
-    def fit_theia(  # type: ignore
+    def fit_theia(  # type: ignore[override]
         self,
         *,
         train_gen: TileGenerator,
@@ -137,13 +145,13 @@ class Neural(Theia, keras.Model):  # type: ignore
         epochs: int,
         verbose: int,
     ) -> None:
-        """Fit Theia to a multichannel image.
+        """Fit the Theia model.
 
         Args:
-            train_gen: The tiles to train on.
-            valid_gen: The tiles to validate on.
-            epochs: The number of epochs to train the model.
-            verbose: verbosity mode.
+            train_gen: A generator that yields training data.
+            valid_gen: A generator that yields validation data.
+            epochs: The number of epochs to train for.
+            verbose: The verbosity level.
         """
         self.fit(
             x=train_gen,
@@ -185,17 +193,16 @@ class Neural(Theia, keras.Model):  # type: ignore
         verbose: int,
         restore_best_weights: bool,
     ) -> None:
-        """Set up an EarlyStopping callback for the model.
+        """Add an early stopping callback to the model.
 
         Args:
-            min_delta: Minimum change in the monitored quantity to qualify as an
-             improvement, i.e. an absolute change of less than min_delta, will
-             count as no improvement.
-            patience: Number of epochs with no improvement after which training
-             will be stopped.
-            verbose: verbosity mode.
-            restore_best_weights: Whether to restore model weights from the
-             epoch with the best value of the loss function.
+            min_delta: The minimum change in the monitored quantity to qualify as
+            an improvement.
+            patience: The number of epochs with no improvement after which training
+            will be stopped.
+            verbose: The verbosity level.
+            restore_best_weights: Whether to restore model weights from the epoch
+            with the best value of the monitored quantity.
         """
         self._callbacks.append(
             callbacks.EarlyStopping(
@@ -208,7 +215,8 @@ class Neural(Theia, keras.Model):  # type: ignore
             ),
         )
 
-    def add_callback(self, cb: callbacks.Callback) -> None:  # noqa
+    def add_callback(self, cb: callbacks.Callback) -> None:
+        """Add a callback to the model."""
         self._callbacks.append(cb)
 
     def save(self, path: pathlib.Path) -> None:
@@ -223,16 +231,31 @@ class Neural(Theia, keras.Model):  # type: ignore
     def call(
         self,
         inputs: list[tensorflow.Tensor],
-        training: typing.Optional[typing.Union[bool, tensorflow.Tensor]] = None,
-        mask: typing.Optional[
+        training: typing.Optional[  # noqa: ARG002
+            typing.Union[bool, tensorflow.Tensor]
+        ] = None,
+        mask: typing.Optional[  # noqa: ARG002
             typing.Union[tensorflow.Tensor, list[tensorflow.Tensor]]
         ] = None,
     ) -> list[tuple[tensorflow.Tensor, tensorflow.Tensor]]:
-        """Call the model."""
-        return self._model(inputs)  # type: ignore
+        """Call the model on the given inputs.
+
+        Args:
+            inputs: A list of tensors, one for each channel.
+            training: Whether the call is in training mode.
+            mask: A mask or list of masks, one for each channel.
+        """
+        return self._model(inputs)  # type: ignore[no-any-return]
 
     def train_step(self, inputs: list[tensorflow.Tensor]) -> dict[str, float]:
-        """Take one step of training the model."""
+        """Take one step of training the model.
+
+        Args:
+            inputs: A list of tensors, one for each channel.
+
+        Returns:
+            A dictionary mapping metric names to their values.
+        """
         with tensorflow.GradientTape() as tape:
             losses = self._compute_loss(inputs)
 
@@ -244,12 +267,27 @@ class Neural(Theia, keras.Model):  # type: ignore
         return {self.loss_tracker.name: self.loss_tracker.result()}
 
     def test_step(self, inputs: list[tensorflow.Tensor]) -> dict[str, float]:
-        """Take one step of testing/validating the model."""
+        """Take one step of testing/validating the model.
+
+        Args:
+            inputs: A list of tensors, one for each channel.
+
+        Returns:
+            A dictionary mapping metric names to their values.
+        """
         losses = self._compute_loss(inputs)
         self.loss_tracker.update_state(tensorflow.reduce_mean(losses))
         return {self.loss_tracker.name: self.loss_tracker.result()}
 
     def _compute_loss(self, inputs: list[tensorflow.Tensor]) -> list[tensorflow.Tensor]:
+        """Compute the loss for the given inputs.
+
+        Args:
+            inputs: A list of tensors, one for each channel.
+
+        Returns:
+            A list of losses, one for each channel.
+        """
         losses = []
 
         for n, (corrected, kernels) in zip(self._num_kernels, self._model(inputs)):
@@ -265,10 +303,11 @@ class Neural(Theia, keras.Model):  # type: ignore
 
     @property
     def metrics(self) -> list[metrics.Metric]:
-        """Metric to track."""
+        """Return the model's metrics."""
         return [self.loss_tracker]
 
-    def get_config(self) -> None:  # noqa
+    def get_config(self) -> None:
+        """Return the model's configuration."""
         raise NotImplementedError
 
     def _serialize_to_tensors(self) -> None:
@@ -281,13 +320,21 @@ class Neural(Theia, keras.Model):  # type: ignore
         raise NotImplementedError
 
 
-class _TheiaConv(layers.Conv2D):  # type: ignore
+class _TheiaConv(layers.Conv2D):  # type: ignore[misc]
+    """A convolutional layer that returns the kernel as well as the output."""
+
     def __init__(
         self,
         *,
         name: str,
         kernel_size: int,
     ) -> None:
+        """Initialize the layer.
+
+        Args:
+            name: The name of the layer.
+            kernel_size: The size of the kernel.
+        """
         super().__init__(
             name=name,
             filters=1,
@@ -301,6 +348,14 @@ class _TheiaConv(layers.Conv2D):  # type: ignore
         self,
         bleedthrough_term: tensorflow.Tensor,
     ) -> tuple[tensorflow.Tensor, tensorflow.Tensor]:
+        """Call the layer on the given inputs.
+
+        Args:
+            bleedthrough_term: The bleedthrough term.
+
+        Returns:
+            A tuple of the output and the kernel.
+        """
         conv = super().call(bleedthrough_term)
         return conv, self.kernel
 
@@ -314,11 +369,19 @@ class _TheiaConv(layers.Conv2D):  # type: ignore
         raise NotImplementedError
 
 
-class _Aggregator(layers.Layer):  # type: ignore
+class _Aggregator(layers.Layer):  # type: ignore[misc]
+    """A layer that aggregates the bleedthrough terms."""
+
     def __init__(self, *, name: str) -> None:
+        """Initialize the layer.
+
+        Args:
+            name: The name of the layer.
+        """
         super().__init__(name=name)
 
-    def get_config(self) -> typing.Any:  # noqa
+    def get_config(self) -> typing.Any:  # noqa: ANN401
+        """Return the layer's configuration."""
         return super().get_config()
 
     # noinspection PyMethodOverriding
@@ -326,6 +389,14 @@ class _Aggregator(layers.Layer):  # type: ignore
         self,
         inputs: list[tensorflow.Tensor],
     ) -> tuple[tensorflow.Tensor, tensorflow.Tensor]:
+        """Call the layer on the given inputs.
+
+        Args:
+            inputs: A list of tensors, one for each channel.
+
+        Returns:
+            A tuple of the output and the kernels.
+        """
         [source, *contributors] = inputs
 
         kernels = tensorflow.stack([k for _, k in contributors])

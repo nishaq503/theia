@@ -1,15 +1,32 @@
-"""Theia for the RxRx1 dataset."""
+"""Theia for the RxRx1 dataset.
+
+This script is used to train Theia on the RxRx1 dataset. It is not intended for
+use in production, but rather to be used as a reference for how to use Theia.
+
+The RxRx1 dataset is available at https://www.rxrx.ai/rxrx1. Download the data
+and add the path to the `DATA_ROOT` environment variable.
+
+You can run this script with:
+
+```shell
+> streamlit run examples/rxrx.py
+```
+
+This will start a Streamlit server. You can then navigate to the URL printed in
+the terminal to view the results in your browser. See Streamlit's documentation
+at https://docs.streamlit.io/en/stable/ for more information.
+"""
 import concurrent.futures
+import os
 import pathlib
 import random
 
 import imageio.v3 as imageio
 import numpy
 import streamlit
+import theia
 import tqdm
 from matplotlib import pyplot
-
-import theia
 
 
 def run_theia(i_experiment: int, i_plate: int, *, force: bool) -> None:
@@ -43,12 +60,12 @@ def run_theia(i_experiment: int, i_plate: int, *, force: bool) -> None:
         transformer = theia.Transformer.load(json_path)
     else:
         transformer = _train_theia(
-            train_gen=theia.data.TileGenerator(
+            train_gen=theia.TileGenerator(
                 images=train_images,
                 tile_size=512,
                 normalize=False,
             ),
-            valid_gen=theia.data.TileGenerator(
+            valid_gen=theia.TileGenerator(
                 images=valid_images,
                 tile_size=512,
                 normalize=False,
@@ -87,14 +104,12 @@ def _save_one(
 ) -> None:
     bleedthrough_dir, interactions_dir, corrected_dir = paths
 
-    # image = _normalize_image(raw_image)
     image = raw_image / (numpy.max(raw_image) + theia.constants.EPSILON)
 
     bleedthrough_components = transformer.bleedthrough_components(image)
     interactions_components = transformer.interactions_components(image)
 
     total_bleedthrough = numpy.sum(bleedthrough_components, axis=-1)
-    # total_interactions = numpy.sum(interactions_components, axis=-1)
     corrected = numpy.clip(image - total_bleedthrough, a_min=0, a_max=numpy.max(image))
 
     for i in range(6):
@@ -128,8 +143,8 @@ def _img_to_u8(image: numpy.ndarray) -> numpy.ndarray:
 
 
 def _train_theia(
-    train_gen: theia.data.TileGenerator,
-    valid_gen: theia.data.TileGenerator,
+    train_gen: theia.TileGenerator,
+    valid_gen: theia.TileGenerator,
 ) -> theia.Transformer:
     model = theia.models.Neural(
         num_channels=6,
@@ -156,7 +171,15 @@ def _train_theia(
 
 
 def _get_inp_paths() -> tuple[pathlib.Path, pathlib.Path, list[str], list[str]]:
-    data_root = pathlib.Path(__file__).resolve().parents[3].joinpath("data", "rxrx1")
+    data_root = pathlib.Path(
+        os.environ.get(
+            "DATA_ROOT",
+            default=pathlib.Path(__file__)
+            .resolve()
+            .parents[3]
+            .joinpath("data", "rxrx1"),
+        ),
+    ).resolve()
 
     images_dir = data_root.joinpath("images")
 
@@ -500,5 +523,4 @@ def _overlay(red: numpy.ndarray, cyan: numpy.ndarray) -> numpy.ndarray:
 
 
 if __name__ == "__main__":
-    # run_theia(0, 0, force=False)
-    app()
+    run_theia(0, 0, force=True)

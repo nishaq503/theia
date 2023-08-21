@@ -1,8 +1,16 @@
 """Expose basics of Theia."""
 
-from .data import TileGenerator
+from .data_gen import TileGenerator
 from .models import Neural
 from .models import Transformer
 from .utils import constants
 
-__all__ = ["Transformer", "Neural", "TileGenerator", "constants"]
+__version__ = "0.1.1"
+
+__all__ = [
+    "TileGenerator",
+    "Neural",
+    "Transformer",
+    "constants",
+    "__version__",
+]

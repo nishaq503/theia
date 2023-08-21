@@ -29,9 +29,9 @@ class Theia(abc.ABC):
         Args:
             num_channels: number of channels in each image.
             channel_overlap: Maximum number of adjacent channels to consider for
-             bleed-through removal.
+            bleed-through removal.
             kernel_size: Side-length of square kernel (convolutional) to use for
-             estimating bleed-through.
+            estimating bleed-through.
             alpha: Relative size of l1-penalty in the LASSO loss.
             beta: Relative weighting of target channel in interaction terms.
         """

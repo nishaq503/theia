@@ -4,8 +4,9 @@
 /data
 /.venv
 /.idea
-poetry.lock
-.ruff_cache
+/poetry.lock
+/.ruff_cache
+/.vscode
 
 ################################################################################
 # Python
