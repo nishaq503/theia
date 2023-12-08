@@ -5,7 +5,7 @@ from .models import Neural
 from .models import Transformer
 from .utils import constants
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 __all__ = [
     "TileGenerator",
