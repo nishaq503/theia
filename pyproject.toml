@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "theia-py"
-version = "0.1.1"
+version = "0.1.2"
 description = "Theia: Bleed-Through Correction in Fluorescent Microscopy Images"
 authors = [
   "Najib Ishaq <najib.ishaq@nih.gov>",
@@ -14,12 +14,7 @@ python = ">=3.9,<3.12,!=3.9.7"
 numpy = "^1.23.2"
 scikit-learn = "^1.2.2"
 scipy = "^1.9.0"
-tensorflow-macos = {version = "^2.12.0", platform = "darwin"}
-tensorflow-metal = {version = "^1.0.1", platform = "darwin"}
-tensorflow = [
-    {version = "^2.12.0", platform = "linux"},
-    {version = "^2.12.0", platform = "win32"},
-]
+tensorflow = "^2.13.0"
 
 [tool.poetry.group.dev.dependencies]
 bump2version = "^1.0.1"

@@ -1,4 +1,4 @@
-# Theia (v0.1.1)
+# Theia (v0.1.2)
 
 Bleed-Through Correction in Fluorescent Microscopy Images
 
@@ -6,8 +6,8 @@ Bleed-Through Correction in Fluorescent Microscopy Images
 
 ### Linux
 
-- From PyPI: `pip install "theia-py==0.1.1"`
-- Using poetry: `poetry add theia-py@0.1.1`
+- From PyPI: `pip install "theia-py==0.1.2"`
+- Using poetry: `poetry add theia-py@0.1.2`
 
 ### MacOS (Apple Silicon)
 
@@ -26,7 +26,7 @@ Bleed-Through Correction in Fluorescent Microscopy Images
 6. Install tensorflow dependencies:
   - `conda install -c apple tensorflow-deps`
 7. Install using poetry:
-  - `poetry add theia-py@0.1.1`
+  - `poetry add theia-py@0.1.2`
 
 ### Windows
 
