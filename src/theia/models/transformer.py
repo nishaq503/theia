@@ -245,7 +245,7 @@ class Transformer:
     def _neighbor_indices(self, i_target: int) -> list[int]:
         """Return the indices of the neighbors of the target channel."""
         min_i = max(i_target - self.channel_overlap, 0)
-        max_i = min(i_target + self.channel_overlap, self.num_channels)
+        max_i = min(i_target + self.channel_overlap + 1, self.num_channels)
         return [i for i in range(min_i, max_i) if i != i_target]
 
     def _compute_interaction(
